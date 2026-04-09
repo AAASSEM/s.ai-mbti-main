@@ -6,6 +6,7 @@ import { supabase } from './lib/supabase';
 import firebaseConfig from '../firebase-applet-config.json';
 import seedData from './data/phase2_seed.json';
 import { Button } from './components/ui/Button';
+import { Input } from './components/ui/Input';
 import { Checkbox } from './components/ui/Checkbox';
 import { Label } from './components/ui/Label';
 import { Download, Users, Settings, Database, Table } from 'lucide-react';
