@@ -20,6 +20,11 @@ export default function AdminPanel() {
   const [exporting, setExporting] = useState(false);
   const [accessError, setAccessError] = useState<string | null>(null);
 
+  // Supabase Email/Pass state
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const isSupabase = import.meta.env.VITE_DATABASE_TYPE === 'supabase';
+
   const ALLOWED_ADMINS = [
     "aaaibrahim.1104@gmail.com",
     "casa.aibrahim@gmail.com",
@@ -111,17 +116,18 @@ export default function AdminPanel() {
     setLoadingStats(false);
   };
 
-  const handleLogin = async () => {
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     try {
       setAccessError(null);
-      const isSupabase = import.meta.env.VITE_DATABASE_TYPE === 'supabase';
       if (isSupabase) {
-        await supabase.auth.signInWithOAuth({ provider: 'google' });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
       } else {
         await signInWithGoogle();
       }
-    } catch (e) {
-      setAccessError("Failed to sign in. Please ensure Google Auth is enabled.");
+    } catch (e: any) {
+      setAccessError(e.message || "Failed to sign in. Please check your credentials.");
     }
   };
 
@@ -256,13 +262,28 @@ export default function AdminPanel() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center max-w-sm w-full">
           <h1 className="text-2xl font-semibold mb-4">Admin Login</h1>
-          <p className="text-gray-600 mb-6 text-sm">Please sign in with your authorized Google account to access the dashboard.</p>
+          <p className="text-gray-600 mb-6 text-sm">Please sign in to access the dashboard.</p>
           {accessError && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-md">
               {accessError}
             </div>
           )}
-          <Button onClick={handleLogin} className="w-full">Sign in with Google</Button>
+          
+          {isSupabase ? (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="text-left">
+                <Label htmlFor="admin_email">Email</Label>
+                <Input id="admin_email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              </div>
+              <div className="text-left">
+                <Label htmlFor="admin_pass">Password</Label>
+                <Input id="admin_pass" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              </div>
+              <Button type="submit" className="w-full">Sign In</Button>
+            </form>
+          ) : (
+            <Button onClick={() => handleLogin()} className="w-full">Sign in with Google</Button>
+          )}
         </div>
       </div>
     );
