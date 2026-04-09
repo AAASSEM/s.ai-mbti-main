@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { db } from './lib/firebase';
 import { persistence, logAppError } from './lib/persistence';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/Card';
@@ -123,7 +122,7 @@ export default function StudyApp() {
       }
 
       setParticipantData({
-        uuid: uuid,
+        uuid: uData.uuid,
         persona: uData.mbti_type_core
       });
       setStep(1);
@@ -231,24 +230,7 @@ export default function StudyApp() {
     }
   };
 
-  const handleGlobalSubmit = async () => {
-    if (!participantData) return;
-    setLoading(true);
-    try {
-      await setDoc(doc(db, 'phase2_session_end', participantData.uuid), {
-        participant_uuid: participantData.uuid,
-        timestamp: Timestamp.now(),
-        ai_familiarity: globalEval.ai_familiarity,
-        fatigue_stress: globalEval.fatigue_stress
-      });
-      setStep(4);
-    } catch (err) {
-      console.error(err);
-      setError("Error saving final results.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Final submission is handled during the last trial save
 
   const RatingScale = ({ label, value, onChange }: { label: string, value: number, onChange: (v: number) => void }) => (
     <div className="space-y-3">
@@ -572,39 +554,7 @@ export default function StudyApp() {
             </div>
           )}
 
-          {/* STEP 3: GLOBAL FEEDBACK */}
-          {step === 3 && (
-            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl mx-auto py-10">
-              <div className="text-center space-y-2">
-                <h2 className="text-3xl font-black text-gray-900 uppercase">Final Reflections</h2>
-                <p className="text-gray-500">Just a few more questions to wrap up your session.</p>
-              </div>
-
-              <div className="space-y-10 bg-white p-8 rounded-2xl border border-gray-100 shadow-xl">
-                <RatingScale 
-                  label="How often do you use AI tools (e.g., ChatGPT, Gemini) for studying? (1 = Never, 5 = Daily)" 
-                  value={globalEval.ai_familiarity} 
-                  onChange={(v) => setGlobalEval(p => ({...p, ai_familiarity: v}))} 
-                />
-                
-                <RatingScale 
-                  label="How fatigued or stressed do you feel right now? (1 = Not at all, 5 = Extremely)" 
-                  value={globalEval.fatigue_stress} 
-                  onChange={(v) => setGlobalEval(p => ({...p, fatigue_stress: v}))} 
-                />
-
-                <div className="pt-8 border-t border-gray-100">
-                  <Button 
-                    onClick={handleGlobalSubmit}
-                    disabled={loading || globalEval.ai_familiarity === 0 || globalEval.fatigue_stress === 0}
-                    className="w-full h-14 bg-gray-900 hover:bg-black text-white font-black rounded-xl shadow-lg transition-all"
-                  >
-                    {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Complete Study"}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* GLOBAL FEEDBACK NOT NEEDED - CAPTURED PER TRIAL */}
 
           {/* STEP 4: SUCCESS */}
           {step === 4 && (
