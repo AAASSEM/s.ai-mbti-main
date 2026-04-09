@@ -1,0 +1,96 @@
+{
+  "entities": {
+    "MasterKeyEmail": {
+      "title": "Master Key Email",
+      "description": "Stores PII isolated from analytical data.",
+      "type": "object",
+      "properties": {
+        "participant_uuid": {
+          "type": "string",
+          "description": "UUID linking to analytical data"
+        },
+        "raw_email": {
+          "type": "string",
+          "format": "email"
+        },
+        "hashed_email": {
+          "type": "string"
+        },
+        "secondary_contact": {
+          "type": "string"
+        }
+      },
+      "required": ["participant_uuid", "raw_email", "hashed_email"]
+    },
+    "UserPhase1": {
+      "title": "User Phase 1 Data",
+      "description": "Main analytical dataset.",
+      "type": "object",
+      "properties": {
+        "participant_uuid": { "type": "string" },
+        "consent_timestamp": { "type": "string", "format": "date-time" },
+        "voluntariness_check": { "type": "boolean" },
+        "participant_age": { "type": "number" },
+        "institutional_affiliation": { "type": "string" },
+        "institutional_affiliation_other": { "type": "string" },
+        "country_of_origin": { "type": "string" },
+        "country_of_origin_other": { "type": "string" },
+        "current_country_of_residence": { "type": "string" },
+        "current_country_of_residence_other": { "type": "string" },
+        "cultural_ethnic_identification": { "type": "string" },
+        "mother_tongue_1": { "type": "string" },
+        "english_proficiency_level": { "type": "string" },
+        "years_studying_in_english": { "type": "number" },
+        "participant_status": { "type": "string" },
+        "academic_year_career_stage": { "type": "string" },
+        "primary_discipline": { "type": "string" },
+        "mbti_type_full": { "type": "string" },
+        "dim_val_e_i": { "type": "number" },
+        "dim_val_s_n": { "type": "number" },
+        "dim_val_t_f": { "type": "number" },
+        "dim_val_j_p": { "type": "number" },
+        "dim_val_a_t": { "type": "number" },
+        "s1_fit_inaccurate_r": { "type": "number" },
+        "overall_persona_fit": { "type": "number" },
+        "qualitative_alignment": { "type": "string" },
+        "qualitative_divergence": { "type": "string" },
+        "mbti_type_core": { "type": "string" },
+        "s1_fit_inaccurate_score": { "type": "number" },
+        "fit_score_core_only": { "type": "number" },
+        "fit_score_extended": { "type": "number" }
+      },
+      "required": [
+        "participant_uuid", "consent_timestamp", "voluntariness_check",
+        "participant_age", "institutional_affiliation", "country_of_origin",
+        "current_country_of_residence", "mother_tongue_1", "english_proficiency_level",
+        "years_studying_in_english", "participant_status", "academic_year_career_stage",
+        "primary_discipline", "mbti_type_full", "dim_val_e_i", "dim_val_s_n",
+        "dim_val_t_f", "dim_val_j_p", "s1_fit_inaccurate_r",
+        "overall_persona_fit", "mbti_type_core", "s1_fit_inaccurate_score",
+        "fit_score_core_only", "fit_score_extended"
+      ]
+    },
+    "AppSettings": {
+      "title": "App Settings",
+      "description": "Global configuration for the study.",
+      "type": "object",
+      "properties": {
+        "require_fifth_dimension": { "type": "boolean" }
+      }
+    }
+  },
+  "firestore": {
+    "/app_settings/{docId}": {
+      "schema": { "$ref": "#/entities/AppSettings" },
+      "description": "Global app settings"
+    },
+    "/master_key_emails/{participant_uuid}": {
+      "schema": { "$ref": "#/entities/MasterKeyEmail" },
+      "description": "Isolated PII collection"
+    },
+    "/users_phase1/{participant_uuid}": {
+      "schema": { "$ref": "#/entities/UserPhase1" },
+      "description": "Analytical data collection"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+﻿Student Feedback Survey: AI Tutoring Experiment
+Instructions: Please rate your experience for both Lesson A and Lesson B using the scale below.
+1 = Strongly Disagree / Very Low, 5 = Strongly Agree / Very High
+Section 1: Comfort & Style
+1. I felt comfortable with the teaching style of this lesson.
+ • Lesson A: [ ] [ ] [ ] [ ] [ ]
+ • Lesson B: [ ] [ ] [ ] [ ] [ ]
+2. The tone of the tutor felt like a good match for how I prefer to learn.
+ • Lesson A: [ ] [ ] [ ] [ ] [ ]
+ • Lesson B: [ ] [ ] [ ] [ ] [ ]
+Section 2: Learning & Effort
+3. I felt confident in my understanding of the material after this lesson.
+  • Lesson A: [ ] [ ] [ ] [ ] [ ]
+  • Lesson B: [ ] [ ] [ ] [ ] [ ]
+   4. This lesson required a high level of mental effort to stay focused.
+ • Lesson A: [ ] [ ] [ ] [ ] [ ]
+ • Lesson B: [ ] [ ] [ ] [ ] [ ]
+   5. The tutor effectively held my attention from start to finish.
+ • Lesson A: [ ] [ ] [ ] [ ] [ ]
+ • Lesson B: [ ] [ ] [ ] [ ] [ ]
+Section 3: AI Interaction
+6. I experienced frustration with how the information was presented.
+ • Lesson A: [ ] [ ] [ ] [ ] [ ]
+ • Lesson B: [ ] [ ] [ ] [ ] [ ]
+Section 4: Comparison & Current State
+8. Preference: Which lesson did you prefer overall? (Circle one)
+  • Lesson A  /  Lesson B
+      9. Reasoning: Briefly explain why you picked that lesson:
+________________
+________________
+
+
+      10. Prior Exposure: Had you been exposed to this specific topic before today?
+(Yes / No)
+      11. AI Familiarity: How often do you use AI tools (e.g., ChatGPT, Gemini) for studying?
+(1 = Never, 5 = Daily) [ ] [ ] [ ] [ ] [ ]
+      12. Current State: How fatigued or stressed do you feel right now?
+(1 = Not at all, 5 = Extremely) [ ] [ ] [ ] [ ] [ ]

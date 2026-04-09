@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper Functions
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == "aaaibrahim.1104@gmail.com" || 
+        request.auth.token.email == "casa.aibrahim@gmail.com" || 
+        request.auth.token.email == "aami.abdelfattah@gmail.com"
+      );
+    }
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // --- Study Data Collections ---
+
+    match /app_settings/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /content_cache/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /master_key_emails/{participant_uuid} {
+      allow get, list: if true;
+      allow create: if true;
+      allow read: if isAdmin();
+    }
+
+    match /phase2_trials/{trial_id} {
+      allow get, list, create: if true;
+      allow read: if isAdmin();
+    }
+
+    match /app_errors/{docId} {
+      allow create: if true; // Allow participants to log errors
+      allow read, list: if isAdmin();
+    }
+
+    match /users_phase1/{participant_uuid} {
+      allow get, list: if true;
+      allow create: if true;
+      allow read: if isAdmin();
+    }
+  }
+}
