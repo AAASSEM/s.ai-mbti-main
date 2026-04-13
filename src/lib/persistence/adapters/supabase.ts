@@ -35,7 +35,7 @@ export class SupabaseAdapter implements StudyDatabase {
     const { data: eData, error: eErr } = await supabase
       .from('master_key_emails')
       .select('participant_uuid')
-      .eq('raw_email', email)
+      .ilike('raw_email', email)
       .single();
     
     if (eErr || !eData) return null;

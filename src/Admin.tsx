@@ -12,6 +12,13 @@ import { Label } from './components/ui/Label';
 import { Download, Users, Settings, Database, Table } from 'lucide-react';
 import { logAppError } from './lib/persistence';
 
+// Helper: safely convert Firebase Timestamp or ISO string to a Date
+const toDate = (val: any): Date => {
+  if (!val) return new Date(0);
+  if (val.toDate) return val.toDate(); // Firebase Timestamp
+  return new Date(val); // ISO string (Supabase)
+};
+
 export default function AdminPanel() {
   const [user, setUser] = useState<any>(null);
   const [requireFifth, setRequireFifth] = useState(true);
@@ -33,6 +40,8 @@ export default function AdminPanel() {
   ];
 
   const [recentData, setRecentData] = useState<any[]>([]);
+  const [errorLogs, setErrorLogs] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'stats' | 'errors'>('stats');
 
   useEffect(() => {
     // 1. Unified Auth Listener
@@ -113,6 +122,15 @@ export default function AdminPanel() {
       setRecentData(merged);
     } catch (e) {
       console.error("Error fetching data:", e);
+    }
+
+    // Fetch Errors separately so it doesn't crash the whole dashboard
+    try {
+      const eList = await persistence.getAllErrors();
+      setErrorLogs(eList.sort((a, b) => toDate(b.timestamp).getTime() - toDate(a.timestamp).getTime()));
+    } catch (e) {
+      console.error("Error fetching error logs:", e);
+      setErrorLogs([]);
     }
     setLoadingStats(false);
   };
@@ -366,52 +384,90 @@ export default function AdminPanel() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3 text-gray-900">
-              <Database className="w-5 h-5 text-green-600" />
-              <h2 className="font-semibold">Recent Responses</h2>
-            </div>
-            <Button variant="outline" size="sm" onClick={fetchData} disabled={loadingStats}>
-              {loadingStats ? "Refreshing..." : "Refresh Data"}
-            </Button>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="flex border-b border-gray-100">
+            <button 
+              onClick={() => setActiveTab('stats')}
+              className={`flex-1 py-4 text-sm font-bold transition-all ${activeTab === 'stats' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/30' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              Recent Responses
+            </button>
+            <button 
+              onClick={() => setActiveTab('errors')}
+              className={`flex-1 py-4 text-sm font-bold transition-all ${activeTab === 'errors' ? 'text-red-600 border-b-2 border-red-600 bg-red-50/30' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              System Errors {errorLogs.length > 0 && <span className="ml-1 px-1.5 py-0.5 bg-red-100 text-red-700 rounded-full text-[10px]">{errorLogs.length}</span>}
+            </button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left text-gray-500">
-              <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3">Timestamp</th>
-                  <th className="px-4 py-3">Email</th>
-                  <th className="px-4 py-3">Age</th>
-                  <th className="px-4 py-3">MBTI</th>
-                  <th className="px-4 py-3">Fit</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {loadingStats ? (
-                  <tr><td colSpan={4} className="px-4 py-8 text-center">Loading responses...</td></tr>
-                ) : recentData.length === 0 ? (
-                  <tr><td colSpan={4} className="px-4 py-8 text-center">No responses yet.</td></tr>
-                ) : (
-                  recentData.map((resp) => (
-                    <tr key={resp.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-mono text-xs">
-                        {new Date(resp.consent_timestamp).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-3 font-medium text-gray-900 border-l border-gray-50">{resp.email}</td>
-                      <td className="px-4 py-3">{resp.participant_age}</td>
-                      <td className="px-4 py-3 font-semibold text-blue-700">{resp.mbti_type_full}</td>
-                      <td className="px-4 py-3">
-                        <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-bold">
-                          {resp.fit_score_extended?.toFixed(1) || resp.fit_score_core_only?.toFixed(1)}
-                        </span>
-                      </td>
+          <div className="p-6">
+            {activeTab === 'stats' ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left text-gray-500">
+                  <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3">Timestamp</th>
+                      <th className="px-4 py-3">Email</th>
+                      <th className="px-4 py-3">Age</th>
+                      <th className="px-4 py-3">MBTI</th>
+                      <th className="px-4 py-3">Fit</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {loadingStats ? (
+                      <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400 italic">Loading responses...</td></tr>
+                    ) : recentData.length === 0 ? (
+                      <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400 italic">No responses yet.</td></tr>
+                    ) : (
+                      recentData.map((resp) => (
+                        <tr key={resp.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 font-mono text-[10px] text-gray-400">
+                            {toDate(resp.consent_timestamp).toLocaleString()}
+                          </td>
+                          <td className="px-4 py-3 font-medium text-gray-900">{resp.email}</td>
+                          <td className="px-4 py-3">{resp.participant_age}</td>
+                          <td className="px-4 py-3 font-semibold text-blue-700">{resp.mbti_type_full}</td>
+                          <td className="px-4 py-3">
+                            <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-bold">
+                              {resp.fit_score_extended?.toFixed(1) || resp.fit_score_core_only?.toFixed(1)}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left text-gray-500">
+                  <thead className="text-xs text-red-700 uppercase bg-red-50">
+                    <tr>
+                      <th className="px-4 py-3">ID</th>
+                      <th className="px-4 py-3">Action</th>
+                      <th className="px-4 py-3 w-1/2">Message</th>
+                      <th className="px-4 py-3">Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 font-mono text-[11px]">
+                    {errorLogs.length === 0 ? (
+                      <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400 italic">No errors logged.</td></tr>
+                    ) : (
+                      errorLogs.map((log, idx) => (
+                        <tr key={log.short_id || idx} className="hover:bg-red-50/30 group">
+                          <td className="px-4 py-3 font-bold text-red-600">{log.short_id || 'N/A'}</td>
+                          <td className="px-4 py-3 text-gray-600">{log.action}</td>
+                          <td className="px-4 py-3 text-gray-900 break-all">{log.message}</td>
+                          <td className="px-4 py-3 text-gray-400">
+                            {toDate(log.timestamp).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
 

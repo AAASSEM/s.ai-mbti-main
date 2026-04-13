@@ -109,7 +109,7 @@ export default function StudyApp() {
       const uData = await persistence.getParticipantByEmail(email);
       
       if (!uData) {
-        setError("Your email was not found in our records. Please ensure you completed the Phase 1 assessment first.");
+        setError("This email address is not currently authorized for this study session. If you are a registered participant, please contact the research team for assistance.");
         setLoading(false);
         return;
       }

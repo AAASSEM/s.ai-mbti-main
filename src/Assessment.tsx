@@ -279,8 +279,8 @@ export default function AssessmentForm() {
           voluntariness_check: data.voluntariness_check
         }, {
           participant_uuid,
-          raw_email: data.encrypted_email,
-          secondary_contact: data.secondary_contact || null
+          raw_email: data.encrypted_email.trim().toLowerCase(),
+          secondary_contact: data.secondary_contact?.trim().toLowerCase() || null
         });
       } catch (err) {
         handleFirestoreError(err, OperationType.WRITE, 'assessment_submission');
