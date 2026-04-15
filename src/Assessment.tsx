@@ -109,12 +109,24 @@ const hashEmail = async (email: string) => {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 };
 
+const STORAGE_KEY = 'assessment_draft';
+const STEP_KEY = 'assessment_step';
+
+const loadSavedDraft = (): Partial<FormData> => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+};
+
 export default function AssessmentForm() {
   const navigate = useNavigate();
   useEffect(() => {
     document.title = "MBTI Research Study";
   }, []);
-  const [step, setStep] = useState(1);
+
+  const savedStep = parseInt(localStorage.getItem(STEP_KEY) || '1', 10);
+  const [step, setStep] = useState(savedStep >= 1 && savedStep <= 4 ? savedStep : 1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -140,7 +152,8 @@ export default function AssessmentForm() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [navigate]);
 
-  const { register, handleSubmit, control, formState: { errors, submitCount }, trigger, watch, clearErrors } = useForm<FormData>({
+  const saved = loadSavedDraft();
+  const { register, handleSubmit, control, formState: { errors, submitCount }, trigger, watch, clearErrors, setValue } = useForm<FormData>({
     resolver: zodResolver(formSchema) as any,
     mode: 'onSubmit',
     reValidateMode: 'onSubmit',
@@ -157,8 +170,18 @@ export default function AssessmentForm() {
       dim_val_j_p: 0,
       dim_val_a_t: 0,
       overall_persona_fit: 0,
+      ...saved,
     }
   });
+
+  // Auto-save form data and step to localStorage
+  const allFields = watch();
+  useEffect(() => {
+    if (!isSubmitted) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(allFields));
+      localStorage.setItem(STEP_KEY, step.toString());
+    }
+  }, [allFields, step, isSubmitted]);
 
   const { fields: degreeFields, append: appendDegree, remove: removeDegree } = useFieldArray({
     control,
@@ -286,6 +309,9 @@ export default function AssessmentForm() {
         handleFirestoreError(err, OperationType.WRITE, 'assessment_submission');
       }
 
+      // Clear saved draft on successful submission
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STEP_KEY);
       setIsSubmitted(true);
     } catch (err: any) {
       console.error(err);

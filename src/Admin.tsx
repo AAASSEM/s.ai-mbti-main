@@ -109,15 +109,34 @@ export default function AdminPanel() {
       const pList = await persistence.getAllAssessments();
       setStats({ responses: pList.length });
       
-      const sorted = pList.sort((a, b) => new Date(b.consent_timestamp).getTime() - new Date(a.consent_timestamp).getTime());
-      const top10 = sorted.slice(0, 10);
+      const sorted = pList.sort((a, b) => toDate(b.consent_timestamp).getTime() - toDate(a.consent_timestamp).getTime());
       
       const emailMap = await persistence.getAllEmails();
       
-      const merged = top10.map(item => ({
-        ...item,
-        email: emailMap[item.uuid || item.participant_uuid]?.raw_email || 'N/A'
-      }));
+      // Fetch Phase 2 trials to compute per-participant stats
+      let trialsData: any[] = [];
+      try { trialsData = await persistence.getAllTrials(); } catch(e) { console.error(e); }
+      
+      // Group trials by participant
+      const trialsByParticipant: Record<string, any[]> = {};
+      trialsData.forEach(t => {
+        const pid = t.participant_uuid;
+        if (!trialsByParticipant[pid]) trialsByParticipant[pid] = [];
+        trialsByParticipant[pid].push(t);
+      });
+      
+      const merged = sorted.map(item => {
+        const pid = item.uuid || item.participant_uuid;
+        const trials = trialsByParticipant[pid] || [];
+        const curatedWins = trials.filter((t: any) => t.curated_selected_overall).length;
+        return {
+          ...item,
+          email: emailMap[pid]?.raw_email || 'N/A',
+          topics_done: trials.length,
+          curated_rate: trials.length > 0 ? Math.round((curatedWins / trials.length) * 100) : null,
+          country: item.country_of_origin_other || item.country_of_origin || 'N/A',
+        };
+      });
       
       setRecentData(merged);
     } catch (e) {
@@ -406,31 +425,53 @@ export default function AdminPanel() {
                 <table className="w-full text-sm text-left text-gray-500">
                   <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3">Timestamp</th>
-                      <th className="px-4 py-3">Email</th>
-                      <th className="px-4 py-3">Age</th>
-                      <th className="px-4 py-3">MBTI</th>
-                      <th className="px-4 py-3">Fit</th>
+                      <th className="px-3 py-3">Date</th>
+                      <th className="px-3 py-3">Email</th>
+                      <th className="px-3 py-3">MBTI</th>
+                      <th className="px-3 py-3">Fit</th>
+                      <th className="px-3 py-3">Country</th>
+                      <th className="px-3 py-3 text-center">Phase 2</th>
+                      <th className="px-3 py-3 text-center">Topics</th>
+                      <th className="px-3 py-3 text-center">Curated %</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {loadingStats ? (
-                      <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400 italic">Loading responses...</td></tr>
+                      <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400 italic">Loading responses...</td></tr>
                     ) : recentData.length === 0 ? (
-                      <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400 italic">No responses yet.</td></tr>
+                      <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400 italic">No responses yet.</td></tr>
                     ) : (
-                      recentData.map((resp) => (
-                        <tr key={resp.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 font-mono text-[10px] text-gray-400">
-                            {toDate(resp.consent_timestamp).toLocaleString()}
+                      recentData.map((resp, idx) => (
+                        <tr key={resp.uuid || resp.participant_uuid || idx} className="hover:bg-gray-50">
+                          <td className="px-3 py-3 font-mono text-[10px] text-gray-400 whitespace-nowrap">
+                            {toDate(resp.consent_timestamp).toLocaleDateString()}
                           </td>
-                          <td className="px-4 py-3 font-medium text-gray-900">{resp.email}</td>
-                          <td className="px-4 py-3">{resp.participant_age}</td>
-                          <td className="px-4 py-3 font-semibold text-blue-700">{resp.mbti_type_full}</td>
-                          <td className="px-4 py-3">
-                            <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-bold">
+                          <td className="px-3 py-3 font-medium text-gray-900 text-xs truncate max-w-[180px]">{resp.email}</td>
+                          <td className="px-3 py-3 font-semibold text-blue-700 text-xs">{resp.mbti_type_full}</td>
+                          <td className="px-3 py-3">
+                            <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">
                               {resp.fit_score_extended?.toFixed(1) || resp.fit_score_core_only?.toFixed(1)}
                             </span>
+                          </td>
+                          <td className="px-3 py-3 text-xs text-gray-500">{resp.country}</td>
+                          <td className="px-3 py-3 text-center">
+                            {resp.topics_done >= 3 
+                              ? <span className="text-green-600 font-bold">✓</span> 
+                              : resp.topics_done > 0 
+                                ? <span className="text-amber-500 font-bold">…</span>
+                                : <span className="text-gray-300">—</span>
+                            }
+                          </td>
+                          <td className="px-3 py-3 text-center text-xs font-mono">{resp.topics_done}/3</td>
+                          <td className="px-3 py-3 text-center">
+                            {resp.curated_rate !== null 
+                              ? <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                                  resp.curated_rate >= 67 ? 'bg-green-50 text-green-700' : 
+                                  resp.curated_rate >= 34 ? 'bg-amber-50 text-amber-700' : 
+                                  'bg-red-50 text-red-700'
+                                }`}>{resp.curated_rate}%</span>
+                              : <span className="text-gray-300">—</span>
+                            }
                           </td>
                         </tr>
                       ))
