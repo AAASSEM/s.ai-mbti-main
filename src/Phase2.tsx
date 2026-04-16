@@ -109,7 +109,7 @@ export default function StudyApp() {
       const uData = await persistence.getParticipantByEmail(email);
       
       if (!uData) {
-        setError("This email address is not currently authorized for this study session. If you are a registered participant, please contact the research team for assistance.");
+        setError("notfound");
         setLoading(false);
         return;
       }
@@ -283,7 +283,14 @@ export default function StudyApp() {
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-start text-sm">
               <AlertCircle className="w-4 h-4 mr-3 shrink-0 mt-0.5" />
-              {error}
+              {error === 'notfound' ? (
+                <span>
+                  Your email was not found. Please complete the initial assessment first, then return here.{' '}
+                  <a href="https://s-aimain.vercel.app/" target="_blank" rel="noopener noreferrer" className="underline font-bold hover:text-red-900">
+                    Click here to start the assessment →
+                  </a>
+                </span>
+              ) : error}
             </div>
           )}
 
