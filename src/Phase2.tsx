@@ -232,8 +232,8 @@ export default function StudyApp() {
 
   // Final submission is handled during the last trial save
 
-  const RatingScale = ({ label, value, onChange }: { label: string, value: number, onChange: (v: number) => void }) => (
-    <div className="space-y-3">
+  const RatingScale = ({ label, value, onChange, low, high }: { label: string, value: number, onChange: (v: number) => void, low?: string, high?: string }) => (
+    <div className="space-y-2">
       <Label className="text-xs font-bold text-gray-500 uppercase tracking-tight">{label}</Label>
       <div className="flex justify-between items-center gap-1.5">
         {[1, 2, 3, 4, 5].map((num) => (
@@ -251,6 +251,12 @@ export default function StudyApp() {
           </button>
         ))}
       </div>
+      {(low || high) && (
+        <div className="flex justify-between text-[10px] text-gray-400 px-1">
+          <span>1 = {low}</span>
+          <span>5 = {high}</span>
+        </div>
+      )}
     </div>
   );
 
@@ -454,23 +460,23 @@ export default function StudyApp() {
                   {/* Lesson A Ratings */}
                   <div className="space-y-8 bg-gray-50/50 p-6 rounded-xl border border-gray-100">
                     <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest border-b border-gray-200 pb-2">Material A Feedback</h3>
-                    <RatingScale label="Teaching Style Comfort" value={evaluation.comfort_a} onChange={(v) => setEvaluation(p => ({...p, comfort_a: v}))} />
-                    <RatingScale label="Tutor Tone Match" value={evaluation.tone_a} onChange={(v) => setEvaluation(p => ({...p, tone_a: v}))} />
-                    <RatingScale label="Understanding Confidence" value={evaluation.confidence_a} onChange={(v) => setEvaluation(p => ({...p, confidence_a: v}))} />
-                    <RatingScale label="Mental Effort Required" value={evaluation.effort_a} onChange={(v) => setEvaluation(p => ({...p, effort_a: v}))} />
-                    <RatingScale label="Attention Held" value={evaluation.attention_a} onChange={(v) => setEvaluation(p => ({...p, attention_a: v}))} />
-                    <RatingScale label="Presentation Frustration" value={evaluation.frustration_a} onChange={(v) => setEvaluation(p => ({...p, frustration_a: v}))} />
+                    <RatingScale label="Teaching Style Comfort" low="Uncomfortable" high="Comfortable" value={evaluation.comfort_a} onChange={(v) => setEvaluation(p => ({...p, comfort_a: v}))} />
+                    <RatingScale label="Tutor Tone Match" low="Poor Match" high="Perfect Match" value={evaluation.tone_a} onChange={(v) => setEvaluation(p => ({...p, tone_a: v}))} />
+                    <RatingScale label="Understanding Confidence" low="Not Confident" high="Very Confident" value={evaluation.confidence_a} onChange={(v) => setEvaluation(p => ({...p, confidence_a: v}))} />
+                    <RatingScale label="Mental Effort Required" low="Minimal" high="Extensive" value={evaluation.effort_a} onChange={(v) => setEvaluation(p => ({...p, effort_a: v}))} />
+                    <RatingScale label="Attention Held" low="Distracted" high="Fully Engaged" value={evaluation.attention_a} onChange={(v) => setEvaluation(p => ({...p, attention_a: v}))} />
+                    <RatingScale label="Presentation Frustration" low="None" high="Extreme" value={evaluation.frustration_a} onChange={(v) => setEvaluation(p => ({...p, frustration_a: v}))} />
                   </div>
 
                   {/* Lesson B Ratings */}
                   <div className="space-y-8 bg-gray-50/50 p-6 rounded-xl border border-gray-100">
                     <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest border-b border-gray-200 pb-2">Material B Feedback</h3>
-                    <RatingScale label="Teaching Style Comfort" value={evaluation.comfort_b} onChange={(v) => setEvaluation(p => ({...p, comfort_b: v}))} />
-                    <RatingScale label="Tutor Tone Match" value={evaluation.tone_b} onChange={(v) => setEvaluation(p => ({...p, tone_b: v}))} />
-                    <RatingScale label="Understanding Confidence" value={evaluation.confidence_b} onChange={(v) => setEvaluation(p => ({...p, confidence_b: v}))} />
-                    <RatingScale label="Mental Effort Required" value={evaluation.effort_b} onChange={(v) => setEvaluation(p => ({...p, effort_b: v}))} />
-                    <RatingScale label="Attention Held" value={evaluation.attention_b} onChange={(v) => setEvaluation(p => ({...p, attention_b: v}))} />
-                    <RatingScale label="Presentation Frustration" value={evaluation.frustration_b} onChange={(v) => setEvaluation(p => ({...p, frustration_b: v}))} />
+                    <RatingScale label="Teaching Style Comfort" low="Uncomfortable" high="Comfortable" value={evaluation.comfort_b} onChange={(v) => setEvaluation(p => ({...p, comfort_b: v}))} />
+                    <RatingScale label="Tutor Tone Match" low="Poor Match" high="Perfect Match" value={evaluation.tone_b} onChange={(v) => setEvaluation(p => ({...p, tone_b: v}))} />
+                    <RatingScale label="Understanding Confidence" low="Not Confident" high="Very Confident" value={evaluation.confidence_b} onChange={(v) => setEvaluation(p => ({...p, confidence_b: v}))} />
+                    <RatingScale label="Mental Effort Required" low="Minimal" high="Extensive" value={evaluation.effort_b} onChange={(v) => setEvaluation(p => ({...p, effort_b: v}))} />
+                    <RatingScale label="Attention Held" low="Distracted" high="Fully Engaged" value={evaluation.attention_b} onChange={(v) => setEvaluation(p => ({...p, attention_b: v}))} />
+                    <RatingScale label="Presentation Frustration" low="None" high="Extreme" value={evaluation.frustration_b} onChange={(v) => setEvaluation(p => ({...p, frustration_b: v}))} />
                   </div>
                 </div>
 
@@ -531,12 +537,16 @@ export default function StudyApp() {
                   {/* Q11 & Q12: Session State (Added for each topic) */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pt-6 border-t border-gray-100">
                     <RatingScale 
-                      label="AI Familiarity (1 = Never, 5 = Daily)" 
+                      label="AI Familiarity" 
+                      low="Never" 
+                      high="Daily" 
                       value={evaluation.ai_familiarity} 
                       onChange={(v) => setEvaluation(p => ({...p, ai_familiarity: v}))} 
                     />
                     <RatingScale 
-                      label="Current Fatigue/Stress (1 = None, 5 = Extreme)" 
+                      label="Current Fatigue/Stress" 
+                      low="None" 
+                      high="Extreme" 
                       value={evaluation.fatigue_stress} 
                       onChange={(v) => setEvaluation(p => ({...p, fatigue_stress: v}))} 
                     />
