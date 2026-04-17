@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import { persistence } from './lib/persistence';
 
 import { auth, signInWithGoogle } from './lib/firebase';
@@ -242,52 +243,119 @@ export default function AdminPanel() {
       const piiData = await persistence.getAllEmails();
       const trialsData = await persistence.getAllTrials();
       
-      // Count trial completions per participant
-      const trialsByParticipant = trialsData.reduce((acc: any, d) => {
-        const tid = d.participant_uuid;
-        acc[tid] = (acc[tid] || 0) + 1;
-        return acc;
-      }, {});
+      // Helper for flatten ratings
+      const flattenRatings = (prefix: string, ratings: any) => {
+        if (!ratings) return {};
+        // ratings might be stringified json from Supabase or an object
+        const r = typeof ratings === 'string' ? JSON.parse(ratings) : ratings;
+        return {
+          [`${prefix}_tone`]: r.tone,
+          [`${prefix}_effort`]: r.effort,
+          [`${prefix}_comfort`]: r.comfort,
+          [`${prefix}_attention`]: r.attention,
+          [`${prefix}_confidence`]: r.confidence,
+          [`${prefix}_frustration`]: r.frustration
+        };
+      };
 
-      const mergedData = analyticalData.map(item => ({
-        Timestamp: item.consent_timestamp,
-        Email: piiData[item.uuid || item.participant_uuid]?.raw_email || 'N/A',
-        MBTI_Core: item.mbti_type_core,
-        Topics_Completed: trialsByParticipant[item.uuid || item.participant_uuid] || 0,
-        Fit_Score: item.fit_score_extended?.toFixed(2) || 'N/A',
-        Academic_Year: item.academic_year_career_stage,
-        Major: item.primary_discipline,
-        Institution: item.institutional_affiliation || item.institutional_affiliation_other,
-        Country_of_Origin: item.country_of_origin || item.country_of_origin_other
-      }));
+      // 1. Process Assessments Data
+      const processedAssessments = analyticalData.map((item: any) => {
+        // extract raw_data fields if they exist to top level, as well as preserving top level
+        const raw = item.raw_data && typeof item.raw_data === 'string' ? JSON.parse(item.raw_data) : (item.raw_data || {});
+        const puid = item.uuid || item.participant_uuid;
+        return {
+          uuid: puid,
+          dim_val_a_t: item.dim_val_a_t ?? raw.dim_val_a_t ?? '',
+          dim_val_e_i: item.dim_val_e_i ?? raw.dim_val_e_i ?? '',
+          dim_val_j_p: item.dim_val_j_p ?? raw.dim_val_j_p ?? '',
+          dim_val_s_n: item.dim_val_s_n ?? raw.dim_val_s_n ?? '',
+          dim_val_t_f: item.dim_val_t_f ?? raw.dim_val_t_f ?? '',
+          primary_minor: item.primary_minor ?? raw.primary_minor ?? '',
+          mbti_type_core: item.mbti_type_core ?? raw.mbti_type_core ?? '',
+          mbti_type_full: item.mbti_type_full ?? raw.mbti_type_full ?? '',
+          mother_tongue_1: item.mother_tongue_1 ?? raw.mother_tongue_1 ?? '',
+          participant_age: item.participant_age ?? raw.participant_age ?? '',
+          previous_degrees: typeof (item.previous_degrees ?? raw.previous_degrees) === 'object' ? JSON.stringify(item.previous_degrees ?? raw.previous_degrees) : (item.previous_degrees ?? raw.previous_degrees ?? ''),
+          consent_timestamp: typeof item.consent_timestamp === 'object' && item.consent_timestamp?.seconds ? new Date(item.consent_timestamp.seconds * 1000).toISOString() : (item.consent_timestamp ?? ''),
+          country_of_origin: item.country_of_origin ?? raw.country_of_origin ?? '',
+          fit_score_extended: item.fit_score_extended ?? raw.fit_score_extended ?? '',
+          participant_status: item.participant_status ?? raw.participant_status ?? '',
+          primary_discipline: item.primary_discipline ?? raw.primary_discipline ?? '',
+          fit_score_core_only: item.fit_score_core_only ?? raw.fit_score_core_only ?? '',
+          overall_persona_fit: item.overall_persona_fit ?? raw.overall_persona_fit ?? '',
+          voluntariness_check: item.voluntariness_check ?? raw.voluntariness_check ?? '',
+          qualitative_alignment: item.qualitative_alignment ?? raw.qualitative_alignment ?? '',
+          qualitative_divergence: item.qualitative_divergence ?? raw.qualitative_divergence ?? '',
+          took_in_native_language: item.took_in_native_language ?? raw.took_in_native_language ?? '',
+          mbti_assessment_language: item.mbti_assessment_language ?? raw.mbti_assessment_language ?? '',
+          english_proficiency_level: item.english_proficiency_level ?? raw.english_proficiency_level ?? '',
+          institutional_affiliation: item.institutional_affiliation ?? raw.institutional_affiliation ?? '',
+          years_studying_in_english: item.years_studying_in_english ?? raw.years_studying_in_english ?? '',
+          academic_year_career_stage: item.academic_year_career_stage ?? raw.academic_year_career_stage ?? '',
+          current_country_of_residence: item.current_country_of_residence ?? raw.current_country_of_residence ?? '',
+          cultural_ethnic_identification: item.cultural_ethnic_identification ?? raw.cultural_ethnic_identification ?? '',
+          email: piiData[puid]?.raw_email || '',
+          secondary_email: piiData[puid]?.secondary_contact || '',
+          institutional_affiliation_other: item.institutional_affiliation_other ?? raw.institutional_affiliation_other ?? ''
+        };
+      });
 
-      if (mergedData.length === 0) {
+      // 2. Process Trials Data
+      const processedTrials = trialsData.map((t: any) => {
+        const time = typeof t.timestamp === 'object' && t.timestamp?.seconds ? new Date(t.timestamp.seconds * 1000).toISOString() : (t.timestamp ?? '');
+        return {
+          trial_id: t.trial_id || t.id,
+          participant_uuid: t.participant_uuid,
+          topic_id: t.topic_id,
+          timestamp: time,
+          left_is_style_x: t.left_is_style_x,
+          overall_preference: t.overall_preference,
+          prior_exposure: t.prior_exposure,
+          qualitative_reason: t.qualitative_reason,
+          ai_familiarity: t.ai_familiarity,
+          fatigue_stress: t.fatigue_stress,
+          curated_selected_overall: t.curated_selected_overall,
+          is_test: t.is_test || false,
+          ...flattenRatings('ratings_a', t.ratings_a),
+          ...flattenRatings('ratings_b', t.ratings_b)
+        };
+      });
+
+      // 3. Process Merged Data (Join Trials and Assessments on UUID)
+      const assessmentsMap: Record<string, any> = {};
+      processedAssessments.forEach((a: any) => { assessmentsMap[a.uuid] = a; });
+
+      const processedMerged = processedTrials.map((t: any) => {
+        const a = assessmentsMap[t.participant_uuid] || {};
+        // Omit uuid from 'a' so it doesn't duplicate participant_uuid or look weird
+        const { uuid, ...restAssessment } = a;
+        return {
+          ...t,
+          ...restAssessment
+        };
+      });
+
+      if (processedMerged.length === 0 && processedAssessments.length === 0) {
         alert("No data to export.");
         setExporting(false);
         return;
       }
 
-      // Create CSV
-      const headers = Object.keys(mergedData[0]);
-      const csvContent = [
-        headers.join(','),
-        ...mergedData.map(row => 
-          headers.map(header => {
-            const val = (row as any)[header] ?? '';
-            return `"${val.toString().replace(/"/g, '""')}"`;
-          }).join(',')
-        )
-      ].join('\n');
+      // Create Workbook and Sheets
+      const wb = XLSX.utils.book_new();
+      
+      const wsMerged = XLSX.utils.json_to_sheet(processedMerged);
+      XLSX.utils.book_append_sheet(wb, wsMerged, "Merged");
+      
+      const wsTrials = XLSX.utils.json_to_sheet(processedTrials);
+      XLSX.utils.book_append_sheet(wb, wsTrials, "Trials");
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `assessment_data_${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const wsAssessments = XLSX.utils.json_to_sheet(processedAssessments);
+      XLSX.utils.book_append_sheet(wb, wsAssessments, "Assessments");
+
+      // Export
+      XLSX.writeFile(wb, `study_export_merged_${new Date().toISOString().split('T')[0]}.xlsx`);
+
     } catch (e) {
       console.error("Excel export failed:", e);
       alert("Failed to export Excel. check console.");
