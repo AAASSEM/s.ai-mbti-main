@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { persistence } from './lib/persistence';
 
 import { auth, signInWithGoogle } from './lib/firebase';
@@ -345,12 +345,38 @@ export default function AdminPanel() {
       const wb = XLSX.utils.book_new();
       
       const wsMerged = XLSX.utils.json_to_sheet(processedMerged);
-      XLSX.utils.book_append_sheet(wb, wsMerged, "Merged");
-      
       const wsTrials = XLSX.utils.json_to_sheet(processedTrials);
-      XLSX.utils.book_append_sheet(wb, wsTrials, "Trials");
-
       const wsAssessments = XLSX.utils.json_to_sheet(processedAssessments);
+
+      // Add styling to headers
+      const applyHeaderStyles = (ws: any) => {
+        if (!ws['!ref']) return;
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        const headerStyle = {
+          font: { bold: true, color: { rgb: "FFFFFF" } }, // White text
+          fill: { fgColor: { rgb: "1F4E78" } },           // Dark Blue background
+          alignment: { horizontal: "center" as const }
+        };
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const address = XLSX.utils.encode_cell({ r: 0, c: C });
+          if (!ws[address]) continue;
+          ws[address].s = headerStyle;
+        }
+        
+        // Auto-fit column widths generally
+        const colWidths: { wch: number }[] = [];
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+           colWidths[C] = { wch: 15 };
+        }
+        ws['!cols'] = colWidths;
+      };
+
+      applyHeaderStyles(wsMerged);
+      applyHeaderStyles(wsTrials);
+      applyHeaderStyles(wsAssessments);
+
+      XLSX.utils.book_append_sheet(wb, wsMerged, "Merged");
+      XLSX.utils.book_append_sheet(wb, wsTrials, "Trials");
       XLSX.utils.book_append_sheet(wb, wsAssessments, "Assessments");
 
       // Export
